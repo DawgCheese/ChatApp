@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import Avatar from '../../assets/Avatar.png'
 import Input from '../../compoments/Input'
 import { io } from 'socket.io-client'
-
+import { Link, useNavigate } from 'react-router-dom';
+import UserStatus from '../../modules/UserStatus'
 const Dashboard = () => {
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('user:detail')))
 	const [conversations, setConversations] = useState([])
@@ -11,13 +12,15 @@ const Dashboard = () => {
 	const [users, setUsers] = useState([])
 	const [socket, setSocket] = useState(null)
 	const messageRef = useRef(null)
+    const navigate = useNavigate()
 
+    // Kết nối WebSocket
 	useEffect(() => {
 		setSocket(io('http://localhost:8080'))
 	}, [])
-
+    // Xử lý sự kiện socket
 	useEffect(() => {
-		socket?.emit('addUser', user?.id);
+		socket?.emit('addUser', user?.id);// Thông báo cho server người dùng đã kết nối
 		socket?.on('getUsers', users => {
 			console.log('activeUsers :>> ', users);
 		})
@@ -28,11 +31,11 @@ const Dashboard = () => {
 			}))
 		})
 	}, [socket])
-
+    // Scroll đến tin nhắn mới
 	useEffect(() => {
 		messageRef?.current?.scrollIntoView({ behavior: 'smooth' })
 	}, [messages?.messages])
-
+    // Lấy danh sách hội thoại
 	useEffect(() => {
 		const loggedInUser = JSON.parse(localStorage.getItem('user:detail'))
 		const fetchConversations = async () => {
@@ -47,7 +50,7 @@ const Dashboard = () => {
 		}
 		fetchConversations()
 	}, [])
-
+    // Lấy danh sách người dùng
 	useEffect(() => {
 		const fetchUsers = async () => {
 			const res = await fetch(`http://localhost:3000/api/users/${user?.id}`, {
@@ -61,7 +64,7 @@ const Dashboard = () => {
 		}
 		fetchUsers()
 	}, [])
-
+    // Lấy danh sách tin nhắn
 	const fetchMessages = async (conversationId, receiver) => {
 		const res = await fetch(`http://localhost:3000/api/message/${conversationId}?senderId=${user?.id}&&receiverId=${receiver?.receiverId}`, {
 			method: 'GET',
@@ -72,7 +75,7 @@ const Dashboard = () => {
 		const resData = await res.json()
 		setMessages({ messages: resData, receiver, conversationId })
 	}
-
+    // Gửi tin nhắn
 	const sendMessage = async (e) => {
 		setMessage('')
 		socket?.emit('sendMessage', {
@@ -94,18 +97,35 @@ const Dashboard = () => {
 			})
 		});
 	}
+    // xử lý đăng xuất
+    const handleLogout = () => {
+      localStorage.removeItem('user:token');
+      localStorage.removeItem('user:detail');
+      // Xóa thông tin khác nếu cần
+      navigate('/users/sign_in'); // Điều hướng đến trang đăng nhập
+    };
 
 
   return (
-    <div className='w-screen flex'>
-        <div className='w-[25%] bg-secondary  overflow-scroll '>
-            <div className='flex  items-center my-8 mx-14'>
+   
+    <div class='container' className=' flex container'>
+        <div className='w-[25%]  overflow-scroll '>
+            <div className='flex  items-center my-4 mx-3 '>
             <div className='border border-primary p-[2px] rounded-full'><img src={Avatar} width={75} height={75}/></div>
-            <div className='ml-8'>
-                <h3 className='text-2xl'>{user?.fullName}</h3>
-                <p className='text-lg font-light '>My Account</p>
-                </div>
+            <div className='flex flex-col items-end'>
+            <div className='ml-4'>
+                <h3 className='text-white'>{user?.fullName}</h3>
             </div>
+            <Link to="/users/sign_in" onClick={handleLogout}>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-logout" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" />
+                    <path d="M9 12h12l-3 -3" />
+                    <path d="M18 15l3 -3" />
+                </svg>
+            </Link>
+            </div>
+            </div>  
             <hr/>
             <div className='mx-14 mt-10'>
                 <div className='text-primary text-lg'>Messages</div>
@@ -117,10 +137,10 @@ const Dashboard = () => {
                                 <div className='flex  items-center py-8 border-b border-b-gray-300'>
                                 <div className='cursor-pointer flex items-center'onClick={() =>
                                     fetchMessages(conversationId, user)}>
-                                <div><img src={Avatar} width={60} height={60}/></div>
+                                <div><img src={Avatar} width={80} height={80}/></div>
                                 <div className='ml-6'>
-                                    <h3 className='text-lg font-semibold'>{user?.fullName}</h3>
-                                    <p className='text-sm font-light text-gray-600'>{user?.name}</p>
+                                    <h3 className='text-lg font-semibold text-white'>{user?.fullName}</h3>
+                                    <p className='text-sm font-light text-gray-600  text-white'>{user?.name}</p>
                                 </div>
                             </div>
                             </div>
@@ -130,14 +150,14 @@ const Dashboard = () => {
                 </div>
             </div>
         </div>
-        <div className='w-[50%] h-screen bg-white flex flex-col items-center'>
+        <div className='w-[50%] h-screen  flex flex-col items-center'>
             {
                 messages?.receiver?.fullName &&
-                <div className='w-[75%] bg-secondary h-[80px] my-14 rounded-full flex items-center px-14 shadow-md py-2'>
+                <div className='w-[75%] bg-secondary h-[50px] my-5 rounded-full flex items-center px-8 shadow-md py-2'>
                 <div className='cursor-pointer'><img src={Avatar} width={60} height={60}/></div>
                 <div className='ml-6 mr-auto '>
                     <h3 className='text-lg font-semibold'>{messages?.receiver?.fullName}</h3>
-                    <p className='text-sm font-light text-gray-600'>{messages?.receiver?.name}</p>
+                    <UserStatus userId={user?.id} />
                 </div>
                 <div className='cursor-pointer'>
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-phone-outgoing" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="#2c3e50" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -148,7 +168,7 @@ const Dashboard = () => {
                 </div>  
             </div>
             }
-            <div className='h-[75%]  w-full overflow-scroll  shadow-sm'>
+            <div className='h-[60%]  w-full overflow-scroll  shadow-sm'>
                 <div className='p-14'>
                 {
                     messages?.messages?.length > 0 ?
@@ -167,7 +187,7 @@ const Dashboard = () => {
             </div>
             {
                 messages?.receiver?.fullName &&
-                <div className='p-14 w-full flex items-center'>
+                <div className='p-14 w-full flex items-center h=[100px]'>
                     <Input placeholder='Type a message...' value={message} onChange={(e) => setMessage(e.target.value)}
                      className='w-[75%]' inputClassname='p-4  border-0 shadow-md 
                     rounded-full bg-light focus:ring-0 focus:border-0 outline-none'/>
@@ -179,22 +199,22 @@ const Dashboard = () => {
                         <path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5" />
                         </svg>
                     </div>
-                    <div  className={`ml-4 p-2 cursor-pointer bg-light rounded-full ${!message && 
-                    'pointer-events-none'}`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-plus" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="#2c3e50" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M12 5l0 14" />
-                        <path d="M5 12l14 0" />
-                        </svg>
-            </div>
+                        <div  className={`ml-4 p-2 cursor-pointer bg-light rounded-full ${!message && 
+                        'pointer-events-none'}`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-plus" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="#2c3e50" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M12 5l0 14" />
+                            <path d="M5 12l14 0" />
+                            </svg>
+                </div>
         </div>          
             }        
         </div>
-        <div className='w-[25%] h-sreen bg-light px-8 py-16 overflow-scroll'>
+        <div className='w-[25%] h-sreen  px-8 py-16 overflow-scroll'>
             <div className='text-primary text-lg'>People</div>
             <div>
                     {
-                      users.length >0?
+                      users.length > 0 ?
                         users.map(({ userId, user})=>{
                             return (
                                 <div className='flex  items-center py-8 border-b border-b-gray-300'>
@@ -202,8 +222,8 @@ const Dashboard = () => {
                                     fetchMessages('new', user)}>
                                 <div><img src={Avatar} className='w-[60px] h-[60px] rounded-full p-[2px] border border-primary'/></div>
                                 <div className='ml-6'>
-                                    <h3 className='text-lg font-semibold'>{user?.fullName}</h3>
-                                    <p className='text-sm font-light text-gray-600'>{user?.name}</p>
+                                    <h3 className='text-lg font-semibold  text-white'>{user?.fullName}</h3>
+                                    <p className='text-sm font-light text-gray-600  text-white'>{user?.name}</p>
                                 </div>
                             </div>
                             </div>
@@ -213,6 +233,7 @@ const Dashboard = () => {
                 </div>
         </div>
     </div>
+   
   )
 }
 
